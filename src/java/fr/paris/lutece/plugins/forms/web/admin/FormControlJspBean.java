@@ -149,7 +149,6 @@ public class FormControlJspBean extends AbstractJspBean
     private final int _nDefaultItemsPerPage = AppPropertiesService.getPropertyInt( PROPERTY_ITEM_PER_PAGE, 50 );
     private String _strCurrentPageIndex;
     private int _nItemsPerPage;
-
     /**
      * Build the Manage View
      * 
@@ -177,6 +176,13 @@ public class FormControlJspBean extends AbstractJspBean
         _nItemsPerPage = AbstractPaginator.getItemsPerPage( request, AbstractPaginator.PARAMETER_ITEMS_PER_PAGE, _nItemsPerPage, _nDefaultItemsPerPage );
 
         Map<String, Object> model = getModel( );
+       if(_controlType.name( ) == "TRANSITION") {
+
+           Transition transition = TransitionHome.findByPrimaryKey( _nIdTarget );
+           model.put( "id_transition", transition.getId() );
+              Step nextStep = StepHome.findByPrimaryKey( transition.getNextStep( ) );
+           model.put( "id_next_step", nextStep.getId() );
+       }
         model.put( MARK_PAGINATOR, paginator );
         model.put( MARK_NB_ITEMS_PER_PAGE, StringUtils.EMPTY + _nItemsPerPage );
 
@@ -440,7 +446,7 @@ public class FormControlJspBean extends AbstractJspBean
         
         String valSubmit;
         if ( _controlType == ControlType.CONDITIONAL) {
-        	valSubmit = request.getParameter( FormsConstants.PARAMETER_VIEW_MODIFY_CONDITION_CONTROL );
+            valSubmit = request.getParameter(FormsConstants.PARAMETER_VIEW_MODIFY_CONDITION_CONTROL);
         } else {
         	valSubmit = request.getParameter( FormsConstants.PARAMETER_VIEW_MODIFY_CONTROL );
         }
@@ -543,7 +549,26 @@ public class FormControlJspBean extends AbstractJspBean
             IValidator validator = EntryServiceManager.getInstance( ).getValidator( _control.getValidatorName( ) );
             strValidatorTemplate = validator.getDisplayHtml( _control );
         }
+        if ( _controlType == ControlType.TRANSITION) {
+            if (request.getParameter("id_next_step") != null) {
+                int id_next_step = Integer.parseInt(request.getParameter("id_next_step"));
+                Step nextStep = StepHome.findByPrimaryKey(id_next_step);
+                model.put("next_step", nextStep);
+            }
+            if (request.getParameter("id_transition") != null) {
+                int id_transition = Integer.parseInt(request.getParameter("id_transition"));
+                Transition transition = TransitionHome.findByPrimaryKey(id_transition);
+                model.put("transition", transition);
+            }
 
+            List <Step> stepList = StepHome.getStepsListByForm(_step.getIdForm());
+            model.put("stepList", stepList);
+
+        }
+        for(int i = 0; i < referenceListQuestion.size( ); i++)
+        {
+            System.out.println(referenceListQuestion.get(i).getCode() + " " + referenceListQuestion.get(i).getName());
+        }
         model.put( FormsConstants.MARK_QUESTION, _question );
         model.put( FormsConstants.MARK_STEP, _step );
         model.put( FormsConstants.MARK_CONTROL_TEMPLATE, strValidatorTemplate );
