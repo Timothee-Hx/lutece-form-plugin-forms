@@ -33,29 +33,20 @@
  */
 package fr.paris.lutece.plugins.forms.web;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.TreeMap;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 
+import fr.paris.lutece.plugins.forms.business.*;
+import fr.paris.lutece.plugins.genericattributes.business.ResponseHome;
+import fr.paris.lutece.portal.service.util.AppLogService;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
-import fr.paris.lutece.plugins.forms.business.Form;
-import fr.paris.lutece.plugins.forms.business.FormHome;
-import fr.paris.lutece.plugins.forms.business.FormMessage;
-import fr.paris.lutece.plugins.forms.business.FormMessageHome;
-import fr.paris.lutece.plugins.forms.business.FormQuestionResponse;
-import fr.paris.lutece.plugins.forms.business.FormResponse;
-import fr.paris.lutece.plugins.forms.business.Question;
-import fr.paris.lutece.plugins.forms.business.Step;
-import fr.paris.lutece.plugins.forms.business.StepHome;
 import fr.paris.lutece.plugins.forms.exception.FormNotFoundException;
 import fr.paris.lutece.plugins.forms.exception.MaxFormResponseException;
 import fr.paris.lutece.plugins.forms.exception.QuestionValidationException;
@@ -96,6 +87,7 @@ import fr.paris.lutece.portal.util.mvc.xpage.annotations.Controller;
 import fr.paris.lutece.portal.web.upload.MultipartHttpServletRequest;
 import fr.paris.lutece.portal.web.xpages.XPage;
 import fr.paris.lutece.util.url.UrlItem;
+import org.apache.james.mime4j.dom.datetime.DateTime;
 
 /**
  * 
@@ -161,6 +153,7 @@ public class FormXPage extends MVCApplication
     private StepDisplayTree _stepDisplayTree;
     private IBreadcrumb _breadcrumb;
     private boolean _bInactiveStateBypassed;
+    private boolean IsRequestComingFromAction = false;
 
     /**
      * Return the default XPage with the list of all available Form
@@ -319,13 +312,15 @@ public class FormXPage extends MVCApplication
             {
                 _breadcrumb = SpringContextService.getBean( form.getBreadcrumbName( ) );
             }
-
+            if(_formResponseManager != null && !_formResponseManager.getIsBackupResponseAlreadyInitiated() && _formResponseManager.getIsResponseLoadedFromBackup()) {
+              _formResponseManager.setBackupResponseAlreadyInitiated(true);
+            }
             initFormResponseManager( request, form );
             if ( _formResponseManager.getFormResponse( ).isFromSave( ) )
             {
             	String strActionNextStep = request.getParameter( "action_" + ACTION_SAVE_STEP );
-            	if (strActionNextStep == null)
-            	{
+                if (strActionNextStep == null && _formResponseManager.getCurrentStep() != null) {
+
             		_currentStep = _formResponseManager.getCurrentStep( );
                 	_stepDisplayTree = new StepDisplayTree( _currentStep.getId( ), _formResponseManager.getFormResponse( ) );
             	}
@@ -338,7 +333,9 @@ public class FormXPage extends MVCApplication
             if ( _stepDisplayTree == null || _currentStep.getId( ) != _stepDisplayTree.getStep( ).getId( ) )
             {
                 _stepDisplayTree = new StepDisplayTree( _currentStep.getId( ), _formResponseManager.getFormResponse( ) );
-                _formResponseManager.add( _currentStep );
+            if(!_formResponseManager.getValidatedSteps().contains(_currentStep.getId())) {
+                _formResponseManager.add(_currentStep);
+            }
             }
 
             if ( !_formResponseManager.getFormResponse( ).isFromSave( ) && !bypassInactiveState( form, request ) )
@@ -364,7 +361,7 @@ public class FormXPage extends MVCApplication
                 SiteMessageService.setMessage( request, FormsConstants.MESSAGE_ERROR_INACTIVE_FORM, SiteMessage.TYPE_ERROR );
             }
         }
-
+        IsRequestComingFromAction = false;
         XPage xPage = getXPage( TEMPLATE_VIEW_STEP, getLocale( request ), model );
         xPage.setTitle( strTitleForm );
         xPage.setPathLabel( strPathForm );
@@ -442,18 +439,19 @@ public class FormXPage extends MVCApplication
     }
 
     /**
-     * 
+     *
      * @param request
      *            The Http request
      * @return the XPage
-     * 
+     *
      * @throws SiteMessageException
      *             Exception
-     * @throws UserNotSignedException 
+     * @throws UserNotSignedException
      */
     @Action( value = ACTION_PREVIOUS_STEP )
     public synchronized XPage doReturnStep( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException
     {
+        IsRequestComingFromAction = true;
         boolean bSessionLost = isSessionLost( );
         try
         {
@@ -466,21 +464,29 @@ public class FormXPage extends MVCApplication
         if ( bSessionLost )
         {
             addWarning( MESSAGE_WARNING_LOST_SESSION, getLocale( request ) );
+            _currentStep = _formResponseManager.getCurrentStep( );
             return  getStepView(  request );
         }
         try
         {
-            FormsResponseUtils.fillResponseManagerWithResponses( request, false, _formResponseManager, _stepDisplayTree.getQuestions( ), false );
+            // The condition below : We don't want to fill the FormResponseManager when just logged in with response made when user wasn't logged in
+            //for exemple in case you are at step 2, you log in and you have to go back to step 1 that you already saved in backup
+            if(_formResponseManager.getIsBackupResponseAlreadyInitiated() && _formResponseManager.getIsResponseLoadedFromBackup()
+            || !_formResponseManager.getIsResponseLoadedFromBackup() && _formResponseManager.getFormResponse().getCreation() != null) {
+                FormsResponseUtils.fillResponseManagerWithResponses(request, false, _formResponseManager, _stepDisplayTree.getQuestions(), false);
+            }
         }
         catch( QuestionValidationException exception )
         {
             return getStepView(  request );
         }
-        _formResponseManager.popStep( );
-
-        _currentStep = _formResponseManager.getCurrentStep( );
-
-        _stepDisplayTree = new StepDisplayTree( _currentStep.getId( ), _formResponseManager.getFormResponse( ) );
+        _formResponseManager.popStep();
+        _currentStep = _formResponseManager.getCurrentStep();
+        try {
+            _stepDisplayTree = new StepDisplayTree(_currentStep.getId(), _formResponseManager.getFormResponse());
+        } catch (Exception e) {
+            return getStepView(  request );
+        }
 
         return  getStepView(  request );
     }
@@ -498,6 +504,8 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_GO_TO_STEP )
     public synchronized XPage doGoToStep( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException
     {
+        IsRequestComingFromAction = true;
+
         boolean bSessionLost = isSessionLost( );
 
         try
@@ -546,6 +554,7 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_FORM_RESPONSE_SUMMARY )
     public synchronized XPage doFormResponseSummary( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException
     {
+        IsRequestComingFromAction = true;
         Form form = null;
         try
         {
@@ -640,6 +649,7 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_SAVE_FORM_RESPONSE )
     public synchronized XPage doSaveFormResponse( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException, AccessDeniedException
     {
+        IsRequestComingFromAction = true;
         // CSRF Token control
         if ( !SecurityTokenService.getInstance( ).validate( request, ACTION_SAVE_FORM_RESPONSE ) )
         {
@@ -686,6 +696,7 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_SAVE_FORM_RESPONSE_SUMMARY )
     public synchronized XPage doSaveFormResponseSummary( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException, AccessDeniedException
     {
+        IsRequestComingFromAction = true;
         // CSRF Token control
         if ( !SecurityTokenService.getInstance( ).validate( request, ACTION_SAVE_FORM_RESPONSE ) )
         {
@@ -880,7 +891,11 @@ public class FormXPage extends MVCApplication
         // CSRF Token control
         if ( !SecurityTokenService.getInstance( ).validate( request, ACTION_SAVE_FORM_RESPONSE ) )
         {
-            throw new AccessDeniedException( MESSAGE_ERROR_TOKEN );
+            // if you go to step 2, then you log in (as you didn't save any backup), the token is invalided
+            // why are we here as we didn't try to save any backup ? So instead of throwing the error, we redirect.
+            AppLogService.error("FormXPage l 897 : " + MESSAGE_ERROR_TOKEN );
+            _currentStep = StepHome.findByPrimaryKey(Integer.parseInt(request.getParameter(FormsConstants.PARAMETER_ID_STEP)));
+           return getStepView(  request );
         }
 
         try
@@ -892,8 +907,10 @@ public class FormXPage extends MVCApplication
                 addWarning( MESSAGE_WARNING_LOST_SESSION, getLocale( request ) );
                 return getStepView(  request );
             }
+            if(_formResponseManager.getCurrentStep() == null) {
+               _formResponseManager.add(StepHome.getInitialStep(form.getId()));
+            }
             FormsResponseUtils.fillResponseManagerWithResponses( request, true, _formResponseManager, _stepDisplayTree.getQuestions( ), false );
-
             boolean needValidation = _currentStep.isInitial( ) && form.isCaptchaStepInitial( );
             if ( isCaptchaKO( request, needValidation ) )
             {
@@ -917,6 +934,7 @@ public class FormXPage extends MVCApplication
                     errorList.stream( ).collect( Collectors.joining( ) )
             }, null, null, null, SiteMessage.TYPE_ERROR, null, getViewFullUrl( VIEW_STEP ) );
         }
+        IsRequestComingFromAction = true;
         return getStepView(  request );
     }
 
@@ -944,6 +962,7 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_SAVE_FOR_BACKUP )
     public synchronized XPage doSaveForBackup( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException, AccessDeniedException
     {
+        IsRequestComingFromAction = true;
         // CSRF Token control
         if ( !SecurityTokenService.getInstance( ).validate( request, ACTION_SAVE_FORM_RESPONSE ) )
         {
@@ -968,7 +987,9 @@ public class FormXPage extends MVCApplication
         }
 
         checkAuthentication( form, request );
-
+        if(_formResponseManager.getCurrentStep() == null) {
+            _formResponseManager.add(StepHome.getInitialStep(form.getId()));
+        }
         try
         {
         	FormsResponseUtils.fillResponseManagerWithResponses( request, false, _formResponseManager, _stepDisplayTree.getQuestions( ), false );
@@ -979,11 +1000,13 @@ public class FormXPage extends MVCApplication
         }
 
         LuteceUser user = SecurityService.getInstance( ).getRegisteredUser( request );
-
         FormResponse formResponse = _formResponseManager.getFormResponse( );
         formResponse.setGuid( user.getName( ) );
+        formResponse.setUpdateStatus(Timestamp.valueOf(LocalDateTime.now()));
 
         _formService.saveFormForBackup( formResponse );
+        _formResponseManager.setFormResponseUpdateDate( formResponse.getUpdateStatus( ) );
+        _formResponseManager.setIsResponseLoadedFromBackup(false);
 
         return getStepView(  request );
     }
@@ -1004,10 +1027,12 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_RESET_BACKUP )
     public synchronized XPage doResetBackup( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException, AccessDeniedException
     {
+        IsRequestComingFromAction = true;
         // CSRF Token control
         if ( !SecurityTokenService.getInstance( ).validate( request, ACTION_SAVE_FORM_RESPONSE ) )
         {
-            throw new AccessDeniedException( MESSAGE_ERROR_TOKEN );
+            AppLogService.error( MESSAGE_ERROR_TOKEN );
+          return getStepView(  request );
         }
         Form form = null;
 
@@ -1025,6 +1050,7 @@ public class FormXPage extends MVCApplication
         FormResponse formResponse = _formResponseManager.getFormResponse( );
 
         _formService.removeFormBackup( formResponse );
+        _formResponseManager = null;
 
         init( form.getId( ) );
 
@@ -1045,6 +1071,8 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_ADD_ITERATION )
     public synchronized XPage doAddIteration( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException
     {
+        IsRequestComingFromAction = true;
+
         try
         {
             boolean bSessionLost = isSessionLost( );
@@ -1087,6 +1115,8 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_REMOVE_ITERATION )
     public synchronized XPage doRemoveIteration( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException
     {
+        IsRequestComingFromAction = true;
+
         try
         {
             boolean bSessionLost = isSessionLost( );
@@ -1129,6 +1159,7 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_UPLOAD )
     public synchronized XPage doSynchronousUploadDocument( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException
     {
+        IsRequestComingFromAction = true;
 
         boolean bSessionLost = isSessionLost( );
         if ( bSessionLost )
@@ -1215,9 +1246,9 @@ public class FormXPage extends MVCApplication
     {
         LuteceUser user = SecurityService.getInstance( ).getRegisteredUser( request );
 
-        if ( _formResponseManager == null )
+        if ( _formResponseManager == null || !_formResponseManager.getIsResponseLoadedFromBackup() && !IsRequestComingFromAction)
         {
-            if ( user != null )
+            if ( user != null  && form.isBackupEnabled() )
             {
                 _formResponseManager = _formService.createFormResponseManagerFromBackUp( form, user.getName( ) );
             }
