@@ -153,7 +153,7 @@ public class FormXPage extends MVCApplication
     private StepDisplayTree _stepDisplayTree;
     private IBreadcrumb _breadcrumb;
     private boolean _bInactiveStateBypassed;
-    private boolean _IsFromPreviousStep = false;
+    private boolean IsRequestIsFromAnotherStep = false;
     private HashMap<Integer, Timestamp> _mapIdStepVisited = new HashMap<Integer, Timestamp>( );
 
     /**
@@ -367,7 +367,7 @@ public class FormXPage extends MVCApplication
 
             _mapIdStepVisited.put(StepHome.getInitialStep(form.getId()).getId(), Timestamp.valueOf(LocalDateTime.now()));
         }
-            _IsFromPreviousStep = false;
+        IsRequestIsFromAnotherStep = false;
         XPage xPage = getXPage( TEMPLATE_VIEW_STEP, getLocale( request ), model );
         xPage.setTitle( strTitleForm );
         xPage.setPathLabel( strPathForm );
@@ -457,7 +457,7 @@ public class FormXPage extends MVCApplication
     @Action( value = ACTION_PREVIOUS_STEP )
     public synchronized XPage doReturnStep( HttpServletRequest request ) throws SiteMessageException, UserNotSignedException
     {
-         _IsFromPreviousStep = true;
+        IsRequestIsFromAnotherStep = true;
         boolean bSessionLost = isSessionLost( );
         try
         {
@@ -489,9 +489,6 @@ public class FormXPage extends MVCApplication
         _mapIdStepVisited.remove(_mapIdStepVisited.keySet().toArray()[_mapIdStepVisited.size()-1]);
         int previousStepId = _mapIdStepVisited.keySet().toArray()[_mapIdStepVisited.size()-1].hashCode();
         _currentStep = StepHome.findByPrimaryKey(previousStepId);
-        // c'est null en bas
-     // List<FormQuestionResponse> responsesPreviousStep =  _formResponseManager.findResponsesFor(_currentStep);
-  //   _formResponseManager.addResponses(responsesPreviousStep);
         _stepDisplayTree = new StepDisplayTree(  previousStepId, _formResponseManager.getFormResponse( ) );
 
         return  getStepView(  request );
@@ -904,8 +901,9 @@ public class FormXPage extends MVCApplication
                 addWarning( MESSAGE_WARNING_LOST_SESSION, getLocale( request ) );
                 return getStepView(  request );
             }
-            _formResponseManager.add(StepHome.findByPrimaryKey(Integer.parseInt(request.getParameter(FormsConstants.PARAMETER_ID_STEP))));
-
+            if(_formResponseManager.getCurrentStep() == null) {
+               _formResponseManager.add(StepHome.getInitialStep(form.getId()));
+            }
             FormsResponseUtils.fillResponseManagerWithResponses( request, true, _formResponseManager, _stepDisplayTree.getQuestions( ), false );
             boolean needValidation = _currentStep.isInitial( ) && form.isCaptchaStepInitial( );
             if ( isCaptchaKO( request, needValidation ) )
@@ -930,6 +928,7 @@ public class FormXPage extends MVCApplication
                     errorList.stream( ).collect( Collectors.joining( ) )
             }, null, null, null, SiteMessage.TYPE_ERROR, null, getViewFullUrl( VIEW_STEP ) );
         }
+        IsRequestIsFromAnotherStep = true;
         return getStepView(  request );
     }
 
@@ -1231,7 +1230,7 @@ public class FormXPage extends MVCApplication
     {
         LuteceUser user = SecurityService.getInstance( ).getRegisteredUser( request );
 
-        if ( _formResponseManager == null || !_formResponseManager.getIsResponseLoadedFromBackup() && !_IsFromPreviousStep)
+        if ( _formResponseManager == null || !_formResponseManager.getIsResponseLoadedFromBackup() && !IsRequestIsFromAnotherStep)
         {
             if ( user != null  && form.isBackupEnabled() )
             {
