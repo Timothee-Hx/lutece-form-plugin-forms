@@ -33,6 +33,8 @@
  */
 package fr.paris.lutece.plugins.forms.web;
 
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -43,19 +45,12 @@ import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 
+import fr.paris.lutece.plugins.forms.business.*;
+import fr.paris.lutece.portal.service.util.AppLogService;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
-import fr.paris.lutece.plugins.forms.business.Form;
-import fr.paris.lutece.plugins.forms.business.FormHome;
-import fr.paris.lutece.plugins.forms.business.FormMessage;
-import fr.paris.lutece.plugins.forms.business.FormMessageHome;
-import fr.paris.lutece.plugins.forms.business.FormQuestionResponse;
-import fr.paris.lutece.plugins.forms.business.FormResponse;
-import fr.paris.lutece.plugins.forms.business.Question;
-import fr.paris.lutece.plugins.forms.business.Step;
-import fr.paris.lutece.plugins.forms.business.StepHome;
 import fr.paris.lutece.plugins.forms.exception.FormNotFoundException;
 import fr.paris.lutece.plugins.forms.exception.MaxFormResponseException;
 import fr.paris.lutece.plugins.forms.exception.QuestionValidationException;
@@ -96,6 +91,7 @@ import fr.paris.lutece.portal.util.mvc.xpage.annotations.Controller;
 import fr.paris.lutece.portal.web.upload.MultipartHttpServletRequest;
 import fr.paris.lutece.portal.web.xpages.XPage;
 import fr.paris.lutece.util.url.UrlItem;
+import org.apache.james.mime4j.dom.datetime.DateTime;
 
 /**
  * 
@@ -324,9 +320,10 @@ public class FormXPage extends MVCApplication
             if ( _formResponseManager.getFormResponse( ).isFromSave( ) )
             {
             	String strActionNextStep = request.getParameter( "action_" + ACTION_SAVE_STEP );
-            	if (strActionNextStep == null)
-            	{
+            	if (strActionNextStep == null && _formResponseManager.getCurrentStep() != null) {
+
             		_currentStep = _formResponseManager.getCurrentStep( );
+
                 	_stepDisplayTree = new StepDisplayTree( _currentStep.getId( ), _formResponseManager.getFormResponse( ) );
             	}
                 Object [ ] args = {
@@ -476,12 +473,14 @@ public class FormXPage extends MVCApplication
         {
             return getStepView(  request );
         }
-        _formResponseManager.popStep( );
-
-        _currentStep = _formResponseManager.getCurrentStep( );
-
+        /* save
+        int stepdId = Integer.parseInt(request.getParameter( FormsConstants.PARAMETER_ID_STEP ));
+        _currentStep =  StepHome.findByPrimaryKey( stepdId );
+        for (int i = 0; i < _formResponseManager.getValidatedSteps().size() ; i++) {
+            System.out.println(_formResponseManager.getValidatedSteps().get(i).getId());
+        }
         _stepDisplayTree = new StepDisplayTree( _currentStep.getId( ), _formResponseManager.getFormResponse( ) );
-
+*/
         return  getStepView(  request );
     }
 
@@ -982,8 +981,10 @@ public class FormXPage extends MVCApplication
 
         FormResponse formResponse = _formResponseManager.getFormResponse( );
         formResponse.setGuid( user.getName( ) );
+        formResponse.setUpdateStatus(Timestamp.valueOf(LocalDateTime.now()));
 
         _formService.saveFormForBackup( formResponse );
+        _formResponseManager.setIsResponseLoadedFromBackup(false);
 
         return getStepView(  request );
     }
@@ -1025,6 +1026,7 @@ public class FormXPage extends MVCApplication
         FormResponse formResponse = _formResponseManager.getFormResponse( );
 
         _formService.removeFormBackup( formResponse );
+        _formResponseManager = null;
 
         init( form.getId( ) );
 
@@ -1215,9 +1217,9 @@ public class FormXPage extends MVCApplication
     {
         LuteceUser user = SecurityService.getInstance( ).getRegisteredUser( request );
 
-        if ( _formResponseManager == null )
+        if ( _formResponseManager == null || !_formResponseManager.getIsResponseLoadedFromBackup())
         {
-            if ( user != null )
+            if ( user != null  && form.isBackupEnabled() )
             {
                 _formResponseManager = _formService.createFormResponseManagerFromBackUp( form, user.getName( ) );
             }

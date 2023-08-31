@@ -37,18 +37,9 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import fr.paris.lutece.plugins.forms.business.*;
 import org.apache.commons.collections.CollectionUtils;
 
-import fr.paris.lutece.plugins.forms.business.Control;
-import fr.paris.lutece.plugins.forms.business.ControlHome;
-import fr.paris.lutece.plugins.forms.business.ControlType;
-import fr.paris.lutece.plugins.forms.business.Form;
-import fr.paris.lutece.plugins.forms.business.FormQuestionResponse;
-import fr.paris.lutece.plugins.forms.business.FormResponse;
-import fr.paris.lutece.plugins.forms.business.FormResponseHome;
-import fr.paris.lutece.plugins.forms.business.FormResponseStep;
-import fr.paris.lutece.plugins.forms.business.Step;
 import fr.paris.lutece.plugins.forms.service.EntryServiceManager;
 import fr.paris.lutece.plugins.forms.util.FormsConstants;
 import fr.paris.lutece.plugins.forms.validation.IValidator;
@@ -63,6 +54,16 @@ public class FormResponseManager
 {
     private final List<Step> _listValidatedStep;
     private final FormResponse _formResponse;
+    private boolean _bIsResponseLoadedFromBackup = false;
+
+
+
+    public Boolean getIsResponseLoadedFromBackup () {
+        return _bIsResponseLoadedFromBackup;
+    }
+    public void setIsResponseLoadedFromBackup (Boolean bIsResponseLoadedFromBackup) {
+        _bIsResponseLoadedFromBackup = bIsResponseLoadedFromBackup;
+    }
 
     /**
      * Constructor
@@ -342,6 +343,7 @@ public class FormResponseManager
         }
 
         return step;
+
     }
 
     /**
