@@ -55,8 +55,15 @@ public class FormResponseManager
     private final List<Step> _listValidatedStep;
     private final FormResponse _formResponse;
     private boolean _bIsResponseLoadedFromBackup = false;
+    private boolean _isBackupResponseAlreadyInitiated = false;
 
 
+   public Boolean getIsBackupResponseAlreadyInitiated() {
+        return _isBackupResponseAlreadyInitiated;
+    }
+   public void setBackupResponseAlreadyInitiated(Boolean isBackupResponseAlreadyInitiated) {
+        _isBackupResponseAlreadyInitiated = isBackupResponseAlreadyInitiated;
+    }
 
     public Boolean getIsResponseLoadedFromBackup () {
         return _bIsResponseLoadedFromBackup;
