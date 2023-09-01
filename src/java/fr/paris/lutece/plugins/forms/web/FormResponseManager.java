@@ -34,10 +34,11 @@
 package fr.paris.lutece.plugins.forms.web;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 import fr.paris.lutece.plugins.forms.business.*;
+import fr.paris.lutece.portal.service.util.AppLogService;
 import org.apache.commons.collections.CollectionUtils;
 
 import fr.paris.lutece.plugins.forms.service.EntryServiceManager;
@@ -55,16 +56,7 @@ public class FormResponseManager
     private final List<Step> _listValidatedStep;
     private final FormResponse _formResponse;
     private boolean _bIsResponseLoadedFromBackup = false;
-
-
-
-    public Boolean getIsResponseLoadedFromBackup () {
-        return _bIsResponseLoadedFromBackup;
-    }
-    public void setIsResponseLoadedFromBackup (Boolean bIsResponseLoadedFromBackup) {
-        _bIsResponseLoadedFromBackup = bIsResponseLoadedFromBackup;
-    }
-
+    private boolean _isBackupResponseAlreadyInitiated = false;
     /**
      * Constructor
      * 
@@ -162,6 +154,35 @@ public class FormResponseManager
     	return updateDate;
     }
 
+    public void setFormResponseUpdateDate(Timestamp updateDate)
+    {
+    	FormResponse formResponse = getFormResponse();
+    	formResponse.setUpdate(updateDate);
+    }
+    /**
+     * Give a boolean indicating that indicates if view (getViewStep) has been initialized from backup
+     * So with _isBackupResponseAlreadyInitiated and _bIsResponseLoadedFromBackup we can deduce if it's the first time the getViewStep is loaded with the backup response
+     *
+     * @return a boolean indicating that indicates if view has been initialized from backup
+     */
+    public Boolean getIsBackupResponseAlreadyInitiated() {
+        return _isBackupResponseAlreadyInitiated;
+    }
+    public void setBackupResponseAlreadyInitiated(Boolean isBackupResponseAlreadyInitiated) {
+        _isBackupResponseAlreadyInitiated = isBackupResponseAlreadyInitiated;
+    }
+    /**
+     * Gives a boolean indicating if the response is loaded from backup
+     *
+     * @return a boolean indicating if the response is loaded from backup
+     */
+    public Boolean getIsResponseLoadedFromBackup () {
+        return _bIsResponseLoadedFromBackup;
+    }
+    public void setIsResponseLoadedFromBackup (Boolean bIsResponseLoadedFromBackup) {
+        _bIsResponseLoadedFromBackup = bIsResponseLoadedFromBackup;
+    }
+
     /**
      * Initializes the steps order
      */
@@ -197,16 +218,16 @@ public class FormResponseManager
     {
         if ( isStepValidated( step ) )
         {
-            throw new IllegalStateException( "The step is already validated !" );
-        }
+            AppLogService.error("The step is already validated !" );
+        } else {
 
-        _listValidatedStep.add( step );
+            _listValidatedStep.add(step);
 
-        FormResponseStep formResponseStep = findFormResponseStepFor( step );
+            FormResponseStep formResponseStep = findFormResponseStepFor(step);
 
-        if ( formResponseStep == null )
-        {
-            _formResponse.getSteps( ).add( createFormResponseStepFrom( step ) );
+            if (formResponseStep == null) {
+                _formResponse.getSteps().add(createFormResponseStepFrom(step));
+            }
         }
     }
 
