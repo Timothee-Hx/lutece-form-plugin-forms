@@ -154,7 +154,6 @@ public class FormXPage extends MVCApplication
     private IBreadcrumb _breadcrumb;
     private boolean _bInactiveStateBypassed;
     private boolean IsRequestComingFromAction = false;
-    private HashMap<Integer, Timestamp> _mapIdStepVisited = new HashMap<Integer, Timestamp>( );
 
     /**
      * Return the default XPage with the list of all available Form
@@ -362,12 +361,9 @@ public class FormXPage extends MVCApplication
             }
         }
         if(_formResponseManager.getCurrentStep() != null) {
-            System.out.println("current step : " + _formResponseManager.getCurrentStep().getId());
-            _mapIdStepVisited.put(_formResponseManager.getCurrentStep().getId(), Timestamp.valueOf(LocalDateTime.now()));
+            _formResponseManager.addMapIdStepVisited(_formResponseManager.getCurrentStep().getId());
         } else {
-            System.out.println("current step : " +StepHome.getInitialStep(form.getId()).getId());
-
-            _mapIdStepVisited.put(StepHome.getInitialStep(form.getId()).getId(), Timestamp.valueOf(LocalDateTime.now()));
+            _formResponseManager.addMapIdStepVisited((StepHome.getInitialStep(form.getId()).getId()));
         }
         IsRequestComingFromAction = false;
         XPage xPage = getXPage( TEMPLATE_VIEW_STEP, getLocale( request ), model );
@@ -489,11 +485,8 @@ public class FormXPage extends MVCApplication
         _formResponseManager.popStep();
         if( _formResponseManager.getValidatedSteps().size() == 1) {
             // order _mapIdStepVisited by timestamp the oldest is the last one
-            _mapIdStepVisited = _mapIdStepVisited.entrySet().stream().sorted(Map.Entry.comparingByValue()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                    (oldValue, newValue) -> oldValue, LinkedHashMap::new));
-            // remove the last one
-            _mapIdStepVisited.remove(_mapIdStepVisited.keySet().toArray()[_mapIdStepVisited.size()-1]);
-            int previousStepId = _mapIdStepVisited.keySet().toArray()[_mapIdStepVisited.size()-1].hashCode();
+         _formResponseManager.removeLastMapIdStepVisited();
+            int previousStepId = _formResponseManager.getMapIdStepVisited().keySet().toArray()[_formResponseManager.getMapIdStepVisited().size()-1].hashCode();
             _currentStep = StepHome.findByPrimaryKey(previousStepId);
         } else {
             _currentStep = _formResponseManager.getCurrentStep();

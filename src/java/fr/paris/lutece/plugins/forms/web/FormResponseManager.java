@@ -34,8 +34,8 @@
 package fr.paris.lutece.plugins.forms.web;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 import fr.paris.lutece.plugins.forms.business.*;
 import org.apache.commons.collections.CollectionUtils;
@@ -56,6 +56,7 @@ public class FormResponseManager
     private final FormResponse _formResponse;
     private boolean _bIsResponseLoadedFromBackup = false;
     private boolean _isBackupResponseAlreadyInitiated = false;
+    private HashMap<Integer, Timestamp> _mapIdStepVisited = new HashMap<Integer, Timestamp>( );
 
 
    public Boolean getIsBackupResponseAlreadyInitiated() {
@@ -72,6 +73,17 @@ public class FormResponseManager
         _bIsResponseLoadedFromBackup = bIsResponseLoadedFromBackup;
     }
 
+    public void addMapIdStepVisited(int stepId) {
+        _mapIdStepVisited.put(Integer.valueOf(stepId),  Timestamp.valueOf(LocalDateTime.now()));
+    }
+    public void removeLastMapIdStepVisited(){
+        _mapIdStepVisited = _mapIdStepVisited.entrySet().stream().sorted(Map.Entry.comparingByValue()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
+                (oldValue, newValue) -> oldValue, LinkedHashMap::new));
+        // remove the last one
+        _mapIdStepVisited.remove(_mapIdStepVisited.keySet().toArray()[_mapIdStepVisited.size()-1]);    }
+    public HashMap<Integer, Timestamp> getMapIdStepVisited (){
+       return _mapIdStepVisited;
+    }
     /**
      * Constructor
      * 
