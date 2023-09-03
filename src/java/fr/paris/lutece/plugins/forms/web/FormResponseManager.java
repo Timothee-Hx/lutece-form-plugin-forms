@@ -58,32 +58,6 @@ public class FormResponseManager
     private boolean _isBackupResponseAlreadyInitiated = false;
     private HashMap<Integer, Timestamp> _mapIdStepVisited = new HashMap<Integer, Timestamp>( );
 
-
-   public Boolean getIsBackupResponseAlreadyInitiated() {
-        return _isBackupResponseAlreadyInitiated;
-    }
-   public void setBackupResponseAlreadyInitiated(Boolean isBackupResponseAlreadyInitiated) {
-        _isBackupResponseAlreadyInitiated = isBackupResponseAlreadyInitiated;
-    }
-
-    public Boolean getIsResponseLoadedFromBackup () {
-        return _bIsResponseLoadedFromBackup;
-    }
-    public void setIsResponseLoadedFromBackup (Boolean bIsResponseLoadedFromBackup) {
-        _bIsResponseLoadedFromBackup = bIsResponseLoadedFromBackup;
-    }
-
-    public void addMapIdStepVisited(int stepId) {
-        _mapIdStepVisited.put(Integer.valueOf(stepId),  Timestamp.valueOf(LocalDateTime.now()));
-    }
-    public void removeLastMapIdStepVisited(){
-        _mapIdStepVisited = _mapIdStepVisited.entrySet().stream().sorted(Map.Entry.comparingByValue()).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
-                (oldValue, newValue) -> oldValue, LinkedHashMap::new));
-        // remove the last one
-        _mapIdStepVisited.remove(_mapIdStepVisited.keySet().toArray()[_mapIdStepVisited.size()-1]);    }
-    public HashMap<Integer, Timestamp> getMapIdStepVisited (){
-       return _mapIdStepVisited;
-    }
     /**
      * Constructor
      * 
@@ -179,6 +153,25 @@ public class FormResponseManager
     		updateDate = formResponseFromDB != null ? formResponseFromDB.getUpdate() : null;
     	}
     	return updateDate;
+    }
+
+    public void setFormResponseUpdateDate(Timestamp updateDate)
+    {
+    	FormResponse formResponse = getFormResponse();
+    	formResponse.setUpdate(updateDate);
+    }
+    public Boolean getIsBackupResponseAlreadyInitiated() {
+        return _isBackupResponseAlreadyInitiated;
+    }
+    public void setBackupResponseAlreadyInitiated(Boolean isBackupResponseAlreadyInitiated) {
+        _isBackupResponseAlreadyInitiated = isBackupResponseAlreadyInitiated;
+    }
+
+    public Boolean getIsResponseLoadedFromBackup () {
+        return _bIsResponseLoadedFromBackup;
+    }
+    public void setIsResponseLoadedFromBackup (Boolean bIsResponseLoadedFromBackup) {
+        _bIsResponseLoadedFromBackup = bIsResponseLoadedFromBackup;
     }
 
     /**

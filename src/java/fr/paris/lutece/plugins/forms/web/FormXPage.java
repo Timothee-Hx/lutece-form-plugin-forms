@@ -360,11 +360,6 @@ public class FormXPage extends MVCApplication
                 SiteMessageService.setMessage( request, FormsConstants.MESSAGE_ERROR_INACTIVE_FORM, SiteMessage.TYPE_ERROR );
             }
         }
-        if(_formResponseManager.getCurrentStep() != null) {
-            _formResponseManager.addMapIdStepVisited(_formResponseManager.getCurrentStep().getId());
-        } else {
-            _formResponseManager.addMapIdStepVisited((StepHome.getInitialStep(form.getId()).getId()));
-        }
         IsRequestComingFromAction = false;
         XPage xPage = getXPage( TEMPLATE_VIEW_STEP, getLocale( request ), model );
         xPage.setTitle( strTitleForm );
@@ -481,17 +476,13 @@ public class FormXPage extends MVCApplication
         {
             return getStepView(  request );
         }
-// if form manager didn't keep track of previous step, we rely on the _mapIdStepVisited
         _formResponseManager.popStep();
-        if( _formResponseManager.getValidatedSteps().size() == 1) {
-            // order _mapIdStepVisited by timestamp the oldest is the last one
-         _formResponseManager.removeLastMapIdStepVisited();
-            int previousStepId = _formResponseManager.getMapIdStepVisited().keySet().toArray()[_formResponseManager.getMapIdStepVisited().size()-1].hashCode();
-            _currentStep = StepHome.findByPrimaryKey(previousStepId);
-        } else {
-            _currentStep = _formResponseManager.getCurrentStep();
+        _currentStep = _formResponseManager.getCurrentStep();
+        try {
+            _stepDisplayTree = new StepDisplayTree(_currentStep.getId(), _formResponseManager.getFormResponse());
+        } catch (Exception e) {
+            return getStepView(  request );
         }
-        _stepDisplayTree = new StepDisplayTree(  _currentStep.getId(), _formResponseManager.getFormResponse( ) );
 
         return  getStepView(  request );
     }
@@ -896,7 +887,8 @@ public class FormXPage extends MVCApplication
         // CSRF Token control
         if ( !SecurityTokenService.getInstance( ).validate( request, ACTION_SAVE_FORM_RESPONSE ) )
         {
-            throw new AccessDeniedException( MESSAGE_ERROR_TOKEN );
+            AppLogService.error( MESSAGE_ERROR_TOKEN );
+           return getStepView(  request );
         }
 
         try
@@ -1005,6 +997,7 @@ public class FormXPage extends MVCApplication
         formResponse.setUpdateStatus(Timestamp.valueOf(LocalDateTime.now()));
 
         _formService.saveFormForBackup( formResponse );
+        _formResponseManager.setFormResponseUpdateDate( formResponse.getUpdateStatus( ) );
         _formResponseManager.setIsResponseLoadedFromBackup(false);
 
         return getStepView(  request );
