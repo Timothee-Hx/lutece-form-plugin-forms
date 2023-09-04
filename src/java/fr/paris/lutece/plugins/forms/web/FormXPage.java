@@ -467,6 +467,8 @@ public class FormXPage extends MVCApplication
         }
         try
         {
+            // The condition below : We don't want to fill the FormResponseManager when just logged in with response made when user wasn't logged in
+            // in case you are at step 2, you log in and you have to go back to step 1 that you already saved in backup
             if(_formResponseManager.getIsBackupResponseAlreadyInitiated() && _formResponseManager.getIsResponseLoadedFromBackup()
             || !_formResponseManager.getIsResponseLoadedFromBackup()) {
                 FormsResponseUtils.fillResponseManagerWithResponses(request, false, _formResponseManager, _stepDisplayTree.getQuestions(), false);
@@ -980,7 +982,9 @@ public class FormXPage extends MVCApplication
         }
 
         checkAuthentication( form, request );
-
+        if(_formResponseManager.getCurrentStep() == null) {
+            _formResponseManager.add(StepHome.getInitialStep(form.getId()));
+        }
         try
         {
         	FormsResponseUtils.fillResponseManagerWithResponses( request, false, _formResponseManager, _stepDisplayTree.getQuestions( ), false );
@@ -991,7 +995,6 @@ public class FormXPage extends MVCApplication
         }
 
         LuteceUser user = SecurityService.getInstance( ).getRegisteredUser( request );
-
         FormResponse formResponse = _formResponseManager.getFormResponse( );
         formResponse.setGuid( user.getName( ) );
         formResponse.setUpdateStatus(Timestamp.valueOf(LocalDateTime.now()));
