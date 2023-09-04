@@ -38,6 +38,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import fr.paris.lutece.plugins.forms.business.*;
+import fr.paris.lutece.portal.service.util.AppLogService;
 import org.apache.commons.collections.CollectionUtils;
 
 import fr.paris.lutece.plugins.forms.service.EntryServiceManager;
@@ -56,8 +57,6 @@ public class FormResponseManager
     private final FormResponse _formResponse;
     private boolean _bIsResponseLoadedFromBackup = false;
     private boolean _isBackupResponseAlreadyInitiated = false;
-    private HashMap<Integer, Timestamp> _mapIdStepVisited = new HashMap<Integer, Timestamp>( );
-
     /**
      * Constructor
      * 
@@ -209,16 +208,16 @@ public class FormResponseManager
     {
         if ( isStepValidated( step ) )
         {
-            throw new IllegalStateException( "The step is already validated !" );
-        }
+            AppLogService.error("The step is already validated !" );
+        } else {
 
-        _listValidatedStep.add( step );
+            _listValidatedStep.add(step);
 
-        FormResponseStep formResponseStep = findFormResponseStepFor( step );
+            FormResponseStep formResponseStep = findFormResponseStepFor(step);
 
-        if ( formResponseStep == null )
-        {
-            _formResponse.getSteps( ).add( createFormResponseStepFrom( step ) );
+            if (formResponseStep == null) {
+                _formResponse.getSteps().add(createFormResponseStepFrom(step));
+            }
         }
     }
 

@@ -319,10 +319,9 @@ public class FormXPage extends MVCApplication
             if ( _formResponseManager.getFormResponse( ).isFromSave( ) )
             {
             	String strActionNextStep = request.getParameter( "action_" + ACTION_SAVE_STEP );
-            	if (strActionNextStep == null && _formResponseManager.getCurrentStep() != null) {
+                if (strActionNextStep == null && _formResponseManager.getCurrentStep() != null) {
 
             		_currentStep = _formResponseManager.getCurrentStep( );
-
                 	_stepDisplayTree = new StepDisplayTree( _currentStep.getId( ), _formResponseManager.getFormResponse( ) );
             	}
                 Object [ ] args = {
@@ -334,7 +333,9 @@ public class FormXPage extends MVCApplication
             if ( _stepDisplayTree == null || _currentStep.getId( ) != _stepDisplayTree.getStep( ).getId( ) )
             {
                 _stepDisplayTree = new StepDisplayTree( _currentStep.getId( ), _formResponseManager.getFormResponse( ) );
-                _formResponseManager.add( _currentStep );
+            if(!_formResponseManager.getValidatedSteps().contains(_currentStep.getId())) {
+                _formResponseManager.add(_currentStep);
+            }
             }
 
             if ( !_formResponseManager.getFormResponse( ).isFromSave( ) && !bypassInactiveState( form, request ) )
@@ -463,6 +464,7 @@ public class FormXPage extends MVCApplication
         if ( bSessionLost )
         {
             addWarning( MESSAGE_WARNING_LOST_SESSION, getLocale( request ) );
+            _currentStep = _formResponseManager.getCurrentStep( );
             return  getStepView(  request );
         }
         try
@@ -889,7 +891,10 @@ public class FormXPage extends MVCApplication
         // CSRF Token control
         if ( !SecurityTokenService.getInstance( ).validate( request, ACTION_SAVE_FORM_RESPONSE ) )
         {
-            AppLogService.error( MESSAGE_ERROR_TOKEN );
+            // if you go to step 2, then you log in (as you didn't save any backup), the token is invalided
+            // why are we here as we didn't try to save any backup ? So instead of throwing the error, we redirect.
+            AppLogService.error("FormXPage l 897 : " + MESSAGE_ERROR_TOKEN );
+            _currentStep = StepHome.findByPrimaryKey(Integer.parseInt(request.getParameter(FormsConstants.PARAMETER_ID_STEP)));
            return getStepView(  request );
         }
 
@@ -1026,7 +1031,8 @@ public class FormXPage extends MVCApplication
         // CSRF Token control
         if ( !SecurityTokenService.getInstance( ).validate( request, ACTION_SAVE_FORM_RESPONSE ) )
         {
-            throw new AccessDeniedException( MESSAGE_ERROR_TOKEN );
+            AppLogService.error( MESSAGE_ERROR_TOKEN );
+          return getStepView(  request );
         }
         Form form = null;
 
