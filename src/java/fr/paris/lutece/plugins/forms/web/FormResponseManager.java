@@ -159,13 +159,23 @@ public class FormResponseManager
     	FormResponse formResponse = getFormResponse();
     	formResponse.setUpdate(updateDate);
     }
+    /**
+     * Give a boolean indicating that indicates if view (getViewStep) has been initialized from backup
+     * So with _isBackupResponseAlreadyInitiated and _bIsResponseLoadedFromBackup we can deduce if it's the first time the getViewStep is loaded with the backup response
+     *
+     * @return a boolean indicating that indicates if view has been initialized from backup
+     */
     public Boolean getIsBackupResponseAlreadyInitiated() {
         return _isBackupResponseAlreadyInitiated;
     }
     public void setBackupResponseAlreadyInitiated(Boolean isBackupResponseAlreadyInitiated) {
         _isBackupResponseAlreadyInitiated = isBackupResponseAlreadyInitiated;
     }
-
+    /**
+     * Gives a boolean indicating if the response is loaded from backup
+     *
+     * @return a boolean indicating if the response is loaded from backup
+     */
     public Boolean getIsResponseLoadedFromBackup () {
         return _bIsResponseLoadedFromBackup;
     }
