@@ -470,9 +470,9 @@ public class FormXPage extends MVCApplication
         try
         {
             // The condition below : We don't want to fill the FormResponseManager when just logged in with response made when user wasn't logged in
-            // in case you are at step 2, you log in and you have to go back to step 1 that you already saved in backup
+            //for exemple in case you are at step 2, you log in and you have to go back to step 1 that you already saved in backup
             if(_formResponseManager.getIsBackupResponseAlreadyInitiated() && _formResponseManager.getIsResponseLoadedFromBackup()
-            || !_formResponseManager.getIsResponseLoadedFromBackup()) {
+            || !_formResponseManager.getIsResponseLoadedFromBackup() && _formResponseManager.getFormResponse().getCreation() != null) {
                 FormsResponseUtils.fillResponseManagerWithResponses(request, false, _formResponseManager, _stepDisplayTree.getQuestions(), false);
             }
         }
