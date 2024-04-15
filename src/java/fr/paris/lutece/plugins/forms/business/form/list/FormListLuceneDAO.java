@@ -95,6 +95,7 @@ public class FormListLuceneDAO implements IFormListDAO
     private List<FormResponseItem> searchFormResponseItem( FormPanel formPanel, List<IFormColumn> listFormColumn, List<FormFilter> listFormFilter,
             int nStartIndex, int nPageSize, FormItemSortConfig sortConfig )
     {
+        // voir ici ou la list des reponse est créer
         // Create the list of all values of the parameter to used
         List<String> listQueryParametersValues = new ArrayList<>( );
 
@@ -104,6 +105,14 @@ public class FormListLuceneDAO implements IFormListDAO
         List<IFormFilterQueryPart> listFormFilterQueryPart = buildFormFilterQueryPartList( listFormFilter, listQueryParametersValues );
 
         List<FormResponseItem> listFormResponseItem = new ArrayList<>( );
+
+        java.util.List<fr.paris.lutece.plugins.forms.business.form.search.FormResponseSearchItem> rmResponseSearchItem = _formSearchEngine.getSearchResults(listFormPanelInitializerQueryPart, listFormColumnQueryPart,
+                listFormFilterQueryPart, sortConfig, nStartIndex, nPageSize, formPanel);
+
+        for (int i = 0; i <rmResponseSearchItem.size() ; i++) {
+         System.out.println("FormResponseSearchItem : " + rmResponseSearchItem.get(i).getFormTitle());
+        }
+
 
         for ( FormResponseSearchItem formResponseSearchItem : _formSearchEngine.getSearchResults( listFormPanelInitializerQueryPart, listFormColumnQueryPart,
                 listFormFilterQueryPart, sortConfig, nStartIndex, nPageSize, formPanel ) )
