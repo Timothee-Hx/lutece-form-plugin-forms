@@ -88,4 +88,26 @@ public class FormListFacade
 
         _formListDAO.populateFormColumns( formPanel, listFormColumn, listFormFilter, nStartIndex, nPageSize, sortConfig );
     }
+    /**
+     * Populate the given FormPanel with the information of the given FormColumns and FormFilters
+     *
+     * @param formPanel
+     *            The FormPanel to populate
+     * @param listFormColumn
+     *            The list of all FormColumn to use to be populated
+     * @param listFormFilter
+     *            The list of FormFilter to use for retrieving the data of the columns to populate
+     * @param nStartIndex
+     *            The start index of doc
+     * @param nPageSize
+     *            The number of docs to load for pagination purpose
+     * @param sortConfig
+     */
+    public void populateFormColumns( FormPanel formPanel, List<IFormColumn> listFormColumn, List<FormFilter> listFormFilter, int nStartIndex, int nPageSize,
+                                     FormItemSortConfig sortConfig, javax.servlet.http.HttpServletRequest request )
+    {
+        listFormColumn.sort( Comparator.comparing( IFormColumn::getFormColumnPosition ) );
+
+        _formListDAO.populateFormColumns( formPanel, listFormColumn, listFormFilter, nStartIndex, nPageSize, sortConfig, request );
+    }
 }

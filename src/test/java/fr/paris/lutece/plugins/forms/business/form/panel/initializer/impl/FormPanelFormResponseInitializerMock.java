@@ -71,6 +71,11 @@ public class FormPanelFormResponseInitializerMock implements IFormPanelInitializ
     }
 
     @Override
+    public fr.paris.lutece.plugins.forms.business.form.panel.initializer.querypart.IFormPanelInitializerQueryPart getIFormPanelInitializerQueryPart(javax.servlet.http.HttpServletRequest request) {
+        return null;
+    }
+
+    @Override
     public IFormPanelDisplayInitializer getFormPanelDisplayInitializer( )
     {
         return null;

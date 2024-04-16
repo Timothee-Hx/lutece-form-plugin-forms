@@ -63,6 +63,8 @@ public interface IFormPanelInitializer
      * @return
      */
     IFormPanelInitializerQueryPart getIFormPanelInitializerQueryPart( );
+    IFormPanelInitializerQueryPart getIFormPanelInitializerQueryPart( javax.servlet.http.HttpServletRequest request );
+
 
     /**
      * Get an {@link IFormPanelDisplayInitializer} associated with this IFormPanelInitializer.

@@ -49,7 +49,51 @@ public class FormPanelFormsInitializerQueryPart extends AbstractFormPanelInitial
         super( );
         setFormPanelInitializerSelectQuery( new MatchAllDocsQuery( ) );
     }
+    public FormPanelFormsInitializerQueryPart( javax.servlet.http.HttpServletRequest request )
+    {
+        super( );
+        fr.paris.lutece.api.user.User user = fr.paris.lutece.portal.service.admin.AdminUserService.getAdminUser( request );
+        java.util.List<fr.paris.lutece.plugins.forms.business.Form> listForms = fr.paris.lutece.plugins.forms.business.FormHome.getFormList();
+        listForms = (java.util.List<fr.paris.lutece.plugins.forms.business.Form>) fr.paris.lutece.portal.service.workgroup.AdminWorkgroupService.getAuthorizedCollection( listForms, user );
+        java.util.List<Integer> listIds = new java.util.ArrayList<Integer>();
+        for ( fr.paris.lutece.plugins.forms.business.Form form : listForms )
+        {
+            listIds.add( form.getId() );
+        }
+        // sort the list
+        java.util.Collections.sort( listIds );
+        java.util.List<java.util.List<Integer>> listIdsList = new java.util.ArrayList<java.util.List<Integer>>();
+        for (int i = 0; i < listIds.size(); i++)
+        {
+            // if there is a gap between the current id and the previous one make a new list
+            if (i == 0 || listIds.get(i) != listIds.get(i - 1) + 1)
+            {
+                listIdsList.add(new java.util.ArrayList<Integer>());
+            }
+            listIdsList.get(listIdsList.size() - 1).add(listIds.get(i));
+        }
+        java.util.List< org.apache.lucene.search.Query > queries = new java.util.ArrayList<org.apache.lucene.search.Query>();
+        for (int i = 0; i < listIdsList.size(); i++)
+        {
+            if (listIdsList.get(i).size() == 1)
+            {
+                queries.add(org.apache.lucene.document.IntPoint.newExactQuery("id_form", listIdsList.get(i).get(0)));
+            }
+            else
+            {
+                queries.add(org.apache.lucene.document.IntPoint.newRangeQuery("id_form", listIdsList.get(i).get(0), listIdsList.get(i).get(listIdsList.get(i).size() - 1)));
+            }
+        }
+        org.apache.lucene.search.BooleanQuery.Builder builder = new org.apache.lucene.search.BooleanQuery.Builder();
+        for (org.apache.lucene.search.Query query : queries)
+        {
+            builder.add(query, org.apache.lucene.search.BooleanClause.Occur.SHOULD);
+        }
+        org.apache.lucene.search.Query queryForms = builder.build();
 
+        setFormPanelInitializerSelectQuery( queryForms );
+
+    }
     /**
      * {@inheritDoc}
      */

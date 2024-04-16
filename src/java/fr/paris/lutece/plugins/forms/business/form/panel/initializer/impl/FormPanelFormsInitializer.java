@@ -48,6 +48,11 @@ public class FormPanelFormsInitializer extends AbstractFormPanelInitializer
     {
         return new FormPanelFormsInitializerQueryPart( );
     }
+    @Override
+    public IFormPanelInitializerQueryPart getIFormPanelInitializerQueryPart( javax.servlet.http.HttpServletRequest request )
+    {
+        return new FormPanelFormsInitializerQueryPart(request);
+    }
 
     @Override
     public IFormPanelDisplayInitializer getFormPanelDisplayInitializer( )
