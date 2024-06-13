@@ -1,38 +1,66 @@
+
 <!DOCTYPE html>
 <html>
 <head>
 	<title>Export PDF formulaire ${form_title}</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			font-size: 12px;
+			border-collapse: collapse;
+			width: 100%;
+		}
+		h1 {
+			font-size: 24px;
+		}
+		h2 {
+			font-size: 18px;
+		}
+		h3 {
+			font-size: 16px;
+		}
+		p {
+			font-size: 14px;
+		}
+		table {
+			width: 100%;
+			border-collapse: collapse;
+		}
+		td, th {
+			border: 1px solid #ddd;
+			padding: 8px;
+		}
+		tr:nth-child(even) {
+			background-color: #f2f2f2;
+		}
+		th {
+			padding-top: 12px;
+			padding-bottom: 12px;
+			text-align: center;
+			background-color: #04AA6D;
+			color: white;
+		}
+	</style>
 </head>
 <body>
 	<h1 style="font-size: 30px; text-align: center;">
 		${form_title}
 	</h1>
 	<div id="form-response-summary" style="margin-bottom: 3em;">
-		<#if list_pdf_cell?has_content>
-			<#list list_pdf_cell as pdf_cell>
-				<#if pdf_cell.formResponseNumber gt 0 >
-					<h2 style="font-size: 18px; border-top: solid; border-top-width: thin;">
-						# : ${pdf_cell.formResponseNumber}
-					</h2>
-				</#if>
-				<#if pdf_cell.formResponseDate??>
-					<h2 style="font-size: 18px;">
-						Date : ${pdf_cell.formResponseDate}
-					</h2>
-				</#if>
-				<#if pdf_cell.step??>
-					<h3>${pdf_cell.step!}</h3>
-				<#else>
-					<#if pdf_cell.group??>
-						<h3>${pdf_cell.group!}</h3>
-					<#else>
-						<#if pdf_cell.drawable>
-							<p><b>${pdf_cell.title!}</b> : ${pdf_cell.value!}</p>
-						</#if>
-					</#if>
-				</#if>
-			</#list>
-		</#if>
+		<#if response_list?has_content>
+			<#list formResponseList as formsResponse>
+		<div class="response_container">
+			<h1>Formulaire : b # ${response_number!}</h1>
+			<h3>Créé le : ${creation_date!}</h3>
+			<table>
+				<tbody>
+				<tr>
+					<td>${question_title!}</td>
+					<td>${position_12!}</td>
+				</tr>
+				</tbody>
+			</table>
+		</div>
 	</div>
 	<div class="panel-footer"></div>
 </body>
