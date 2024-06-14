@@ -227,28 +227,27 @@ public abstract class AbstractPdfFileGenerator extends AbstractFileGenerator {
         List<FormDisplay> listGroupDisplay = FormDisplayHome.getFormDisplayListByParent( formResponseStep.getStep( ).getId( ), formDisplay.getId( ) );
 
         List<FormQuestionResponse> listFormQuestionResponse = FormQuestionResponseHome.getFormQuestionResponseListByFormResponse(formrResponse.getId());
+   if(listFormQuestionResponse != null && !listFormQuestionResponse.isEmpty()) {
+       for (int ite = 0; ite < listFormQuestionResponse.size(); ite++) {
+           int iteration = ite + 1;
+           String groupePlusIte = groupName + " (" + iteration + ")";
+           PdfCell groupCell = new PdfCell();
+           groupCell.setGroup(groupePlusIte);
+           // if the group is not displayed yet and the group has responses, we add it to the list of cells the group is displayed only once
+           boolean isGroupIterationDisplayed = false;
+           for (int i = 0; i < listGroupDisplay.size(); i++) {
+               PdfCell cell = createPdfCell(formResponseStep, listGroupDisplay.get(i), ite);
+               if (cell != null) {
+                   if (!isGroupIterationDisplayed) {
+                       listContent.add(groupCell);
+                       isGroupIterationDisplayed = true;
+                   }
+                   listContent.add(cell);
+               }
+           }
+       }
+   }
 
-        for ( int ite = 0; ite < listFormQuestionResponse.size( ); ite++ )
-        {
-            int iteration = ite + 1;
-            String groupePlusIte = groupName+" (" + iteration + ")";
-            PdfCell groupCell = new PdfCell( );
-            groupCell.setGroup( groupePlusIte );
-            boolean isGroupIterationDisplayed = false;
-            for ( int i = 0; i < listGroupDisplay.size( ); i++ )
-            {
-                PdfCell cell = createPdfCell( formResponseStep, listGroupDisplay.get(i), ite );
-                if ( cell != null )
-                {
-                    if (!isGroupIterationDisplayed )
-                    {
-                        listContent.add( groupCell );
-                        isGroupIterationDisplayed = true;
-                    }
-                    listContent.add( cell );
-                }
-            }
-        }
         return listContent;
     }
 
