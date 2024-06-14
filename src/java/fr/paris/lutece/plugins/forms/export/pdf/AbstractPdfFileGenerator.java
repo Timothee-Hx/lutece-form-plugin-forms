@@ -247,6 +247,7 @@ public abstract class AbstractPdfFileGenerator extends AbstractFileGenerator {
            }
        }
    }
+
         return listContent;
     }
 
